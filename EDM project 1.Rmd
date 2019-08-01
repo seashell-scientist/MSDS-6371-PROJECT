@@ -1,0 +1,64 @@
+---
+title: "6371 Project Data Cleaning 1"
+author: "Jonathan Tan"
+date: "7/31/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+GOALS
+1 - Estimate how SalePrice of house is related to GrLIvArea (square footage) in NAmes, Edwards, and BrkSide neighborhoods
+  - Find if SalesPrices and relationship to GrLIvArea changes depending on the neighborhood
+  - Estimates with confidence intervals, evidence of model assumptions (being met), identify outliers
+  - Provide conclusion that states the relationship between Area and SalesPrice for each neighborhood (3) 
+
+2 - Build predictive model for sales prices of all homes in Ames Iowa
+  - 4 model types: forward selection, backwards elimination, stepwise selection, one custom
+  - Generate adjusted R62, CV Press, and Kaggle Score for each model and format in table
+  - conclude which model has the best results in predicting sale prices
+```{r data import1}
+train.data1 <- read.csv("D:/SMU/DS 6371 Stat Foundations For Data Science/PROJECT/train.csv")
+test.data1 <- read.csv("D:/SMU/DS 6371 Stat Foundations For Data Science/PROJECT/test.csv")
+```
+
+```{r check for NA's in relevent fields}
+sum(is.na(train.data1$Id))
+sum(is.na(train.data1$SalePrice))
+sum(is.na(train.data1$GrLivArea))
+sum(is.na(train.data1$Neighborhood))
+
+sum(is.na(test.data1$Id))
+sum(is.na(test.data1$SalePrice))
+sum(is.na(test.data1$GrLivArea))
+sum(is.na(test.data1$Neighborhood))
+
+#so looks all clear, no NA's in either sets' ID, neighborhood, area, or sale price fields
+```
+
+```{r distribution sketch}
+library(tidyverse)
+sample1 <- data.frame(train.data1$Id, train.data1$Neighborhood, train.data1$GrLivArea, train.data1$SalePrice)
+
+names(sample1) <- c("ID", "Neighborhood", "Area", "SalePrice")
+
+sample2 <- sample1[which( sample1$Neighborhood == "NAmes" | sample1$Neighborhood == "Edwards" | sample1$Neighborhood == "BrkSide" ), ] #filter by neighborhoods
+
+#summary of all data
+a <- merge(x = test.data1, y = train.data1, by = c("Id", "Neighborhood", "GrLivArea"), all = TRUE)
+a1 <- data.frame(a$Id, a$Neighborhood, a$GrLivArea)
+names(a1) <- c("Id", "Neighborhood", "Area")
+a2 <- a1[which(a1$Neighborhood == "NAmes" | a1$Neighborhood == "Edwards" | a1$Neighborhood == "BrkSide"), ]
+```
+
+
+```{r initvis}
+#plot stuff
+plot(sample2$Area, sample2$Neighborhood, ylab = "BrkSide           Edwards           NAmes", main = "Training Data Area by Neighborhood")
+plot(a2$Area, a2$Neighborhood, ylab = "BrkSide           Edwards           NAmes", main = "All Data Area By Neighborhood")
+
+```
+
+
+```
