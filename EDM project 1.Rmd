@@ -24,15 +24,15 @@ test.data1 <- read.csv("D:/SMU/DS 6371 Stat Foundations For Data Science/PROJECT
 ```
 
 ```{r check for NA's in relevent fields}
-sum(is.na(train.data1$Id))
-sum(is.na(train.data1$SalePrice))
-sum(is.na(train.data1$GrLivArea))
-sum(is.na(train.data1$Neighborhood))
+#sum(is.na(train.data1$Id))
+#sum(is.na(train.data1$SalePrice))
+#sum(is.na(train.data1$GrLivArea))
+#sum(is.na(train.data1$Neighborhood))
 
-sum(is.na(test.data1$Id))
-sum(is.na(test.data1$SalePrice))
-sum(is.na(test.data1$GrLivArea))
-sum(is.na(test.data1$Neighborhood))
+#sum(is.na(test.data1$Id))
+#sum(is.na(test.data1$SalePrice))
+#sum(is.na(test.data1$GrLivArea))
+#sum(is.na(test.data1$Neighborhood))
 
 #so looks all clear, no NA's in either sets' ID, neighborhood, area, or sale price fields
 ```
@@ -51,14 +51,53 @@ a1 <- data.frame(a$Id, a$Neighborhood, a$GrLivArea)
 names(a1) <- c("Id", "Neighborhood", "Area")
 a2 <- a1[which(a1$Neighborhood == "NAmes" | a1$Neighborhood == "Edwards" | a1$Neighborhood == "BrkSide"), ]
 ```
+Assumptions of linear regression 
+- Linearity (linearity relationship between independent and dependent variables  (normally distributed on line))
+- Normality - multivariate normality (means on the line)
+- Equal Standard Deviations - same subpopulation standard deviations(equal spread)
+- Independent (subpopulation observations are independent of any other subpopulation observation)
+kinda have to assume this one, otherwise the data is unusable?? 
+
+```{r check linearity q1}
+#sample 1 is the training dataset, down to relevant 4 columns for q1
+plot(sample1$Area, sample1$SalePrice)
+#looks mostly linear
+plot(sample1$Area, log(sample1$SalePrice))
+#log sale price looks a little better
+plot(log(sample1$Area), log(sample1$SalePrice))
+#ehhhh
+plot(sqrt(sample1$Area), sample1$SalePrice)
+#practically no change from original run
+plot(sample1$Area, sqrt(sample1$SalePrice))
+#also dubious
+#come back to this later 
+```
+
+```{r test multivariate normality }
+#???
+```
+
+```{r test equal standard deviations}
 
 
-```{r initvis}
+
 #plot stuff
 plot(sample2$Area, sample2$Neighborhood, ylab = "BrkSide           Edwards           NAmes", main = "Training Data Area by Neighborhood")
 plot(a2$Area, a2$Neighborhood, ylab = "BrkSide           Edwards           NAmes", main = "All Data Area By Neighborhood")
+#looks skewed, with some extreme outliers for area and price on Edwards and 
+```
+```{r cleaning more data}
+x <- colSums(is.na(train.data1)) #list of na's per column
+y <- as.data.frame(x)
+z <- subset(y, x != 0) #show only fields that have NA's in them 
+names(z) <- c( "Number of NA's")
+z
 
 ```
+We can see that the following columns/data fields are incomplete, with the number of NA's in the right column 
+the total observations of the training dataset is 1460, so some of these variables are worth much less than others. 
+For example 1369/1460 houses have no data on "Alley", so that's probably not a good variable to base the problem 2 model on. 
 
-
-```
+```{r model building}
+#for now, I'm going to separate the data into 3 neighborhoods, and do separate models for each, single linear regression style
+train.model.1 <- lm()
