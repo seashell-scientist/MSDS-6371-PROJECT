@@ -92,7 +92,7 @@ y <- as.data.frame(x)
 z <- subset(y, x != 0) #show only fields that have NA's in them 
 names(z) <- c( "Number of NA's")
 z
-
+#note, can't just use omit.na(all the data), b/c it sweeps by row, and there isn't even a single row that is complete, so it returns nothing but column names
 ```
 We can see that the following columns/data fields are incomplete, with the number of NA's in the right column 
 the total observations of the training dataset is 1460, so some of these variables are worth much less than others. 
