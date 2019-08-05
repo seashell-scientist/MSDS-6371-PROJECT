@@ -93,6 +93,8 @@ z <- subset(y, x != 0) #show only fields that have NA's in them
 names(z) <- c( "Number of NA's")
 z
 #note, can't just use omit.na(all the data), b/c it sweeps by row, and there isn't even a single row that is complete, so it returns nothing but column names
+full <- subset(y, x == 0)#show columns with no na's
+full
 ```
 We can see that the following columns/data fields are incomplete, with the number of NA's in the right column 
 the total observations of the training dataset is 1460, so some of these variables are worth much less than others. 
@@ -116,4 +118,28 @@ summary(train.hoods)
 
 confint(train.hoods)
 #questionable results, will come back to this later 
+```
+
+```{r stepwise testing}
+library(caret)
+library(leaps)
+step.model1 <- lm(SalePrice~Neighborhood, data = sample2)
+
+step.model2 <- step(step.model1, direction = "both", trace = FALSE)
+summary(step.model2)
+
+fit2 <- lm(SalePrice~ Neighborhood + Area, sample2) #where sample2 is subsetted training dataset, narrowed to the 3 relevant neighborhoods
+fit2
+summary(fit2)
+
+sample3 <- data.frame(train.data1$Id, train.data1$Neighborhood, train.data1$GrLivArea, train.data1$SalePrice, train.data1$Utilities, train.data1$LotShape)
+
+names(sample3) <- c("ID", "Neighborhood", "Area", "SalePrice", "Utilities", "LotShape")
+
+sample4 <- sample3[which( sample1$Neighborhood == "NAmes" | sample1$Neighborhood == "Edwards" | sample1$Neighborhood == "BrkSide" ), ] #filter by neighborhoods
+
+fit3 <- lm(SalePrice~ Neighborhood + Area + LotShape, sample4) #where sample4 is the entire training dataset, narrowed to the 3 relevant neighborhoods
+fit3
+summary(fit3)
+
 ```
