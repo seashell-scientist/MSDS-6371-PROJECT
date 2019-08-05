@@ -99,5 +99,21 @@ the total observations of the training dataset is 1460, so some of these variabl
 For example 1369/1460 houses have no data on "Alley", so that's probably not a good variable to base the problem 2 model on. 
 
 ```{r model building}
-#for now, I'm going to separate the data into 3 neighborhoods, and do separate models for each, single linear regression style
-train.model.1 <- lm()
+#separate the data into 3 neighborhoods, and do separate models for each, single linear regression style
+train.NAmes <- sample1[which( sample1$Neighborhood == "NAmes" ), ]
+train.Edwards <- sample1[which( sample1$Neighborhood == "Edwards" ), ]
+train.BrkSide <- sample1[which( sample1$Neighborhood == "BrkSide" ), ]
+
+model.NAmes <- lm(formula = SalePrice ~ Area, data = train.NAmes)
+model.Edwards <- lm(formula = SalePrice ~ Area, data = train.Edwards)
+model.BrkSide <- lm(formula = SalePrice ~ Area, data = train.BrkSide)
+
+#compare to whole model with neighborhood as additional variable
+
+train.hoods <- lm(formula = SalePrice ~ Area + Neighborhood, data = sample2)
+
+summary(train.hoods)
+
+confint(train.hoods)
+#questionable results, will come back to this later 
+```
