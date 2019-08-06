@@ -52,6 +52,10 @@ ggplot(t3, aes(x = SalePrice, fill = Heating)) +
   geom_histogram()
 #huge majority of houses have gas heating, cannot draw significance from this one? 
 
+ggplot(t3, aes(x = MSSubClass, fill = SalePrice)) +
+  geom_histogram()
+#not sure what this one means
+
 ggplot(t3, aes(x = MSZoning,  fill = Street)) + 
   geom_histogram(stat = "count")
 #don't even know what this one means, has many gaps in data
@@ -61,6 +65,8 @@ ggplot(data = t3, mapping = aes(x = Neighborhood, y = SalePrice, fill = HouseSty
 
 ggplot(data = t3, mapping = aes(x = LotShape, y = SalePrice, fill = Neighborhood)) + geom_boxplot()
 #lot shape seems to lower range of sale price if irregular AND in BrkSide, but not if in NAmes
+
+
 
 
 ```
