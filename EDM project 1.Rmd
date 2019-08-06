@@ -18,6 +18,8 @@ GOALS
   - 4 model types: forward selection, backwards elimination, stepwise selection, one custom
   - Generate adjusted R62, CV Press, and Kaggle Score for each model and format in table
   - conclude which model has the best results in predicting sale prices
+  #note that we may have to convert certain data fields to numeric values for use in models, with something like
+  df$variable <- factor(ifslse(df$variable ==2, "some designiation", "some other designation"))
 ```{r data import1}
 train.data1 <- read.csv("D:/SMU/DS 6371 Stat Foundations For Data Science/PROJECT/train.csv")
 test.data1 <- read.csv("D:/SMU/DS 6371 Stat Foundations For Data Science/PROJECT/test.csv")
@@ -50,6 +52,9 @@ a <- merge(x = test.data1, y = train.data1, by = c("Id", "Neighborhood", "GrLivA
 a1 <- data.frame(a$Id, a$Neighborhood, a$GrLivArea)
 names(a1) <- c("Id", "Neighborhood", "Area")
 a2 <- a1[which(a1$Neighborhood == "NAmes" | a1$Neighborhood == "Edwards" | a1$Neighborhood == "BrkSide"), ]
+
+#narrow training data to relevant 3 neighborhoods
+t3 <- train.data1[which(train.data1$Neighborhood == "NAmes" | a1$Neighborhood == "Edwards" | a1$Neighborhood == "BrkSide"), ]
 ```
 Assumptions of linear regression 
 - Linearity (linearity relationship between independent and dependent variables  (normally distributed on line))
@@ -71,6 +76,16 @@ plot(sqrt(sample1$Area), sample1$SalePrice)
 plot(sample1$Area, sqrt(sample1$SalePrice))
 #also dubious
 #come back to this later 
+
+```
+
+```{r ggplots}
+ggplot(data = t3, mapping = aes(x = SalePrice, y = HouseStyle, color = t3$HouseStyle)) + geom_point()
+
+ggplot(data = t3, mapping = aes(x = SalePrice, y = YearRemodAdd, color = t3$YearRemodAdd)) + geom_point()
+
+ggplot(data = t3, mapping = aes(x = SalePrice, y = GarageCars, color = t3$GarageCars)) + geom_point()
+
 ```
 
 ```{r test multivariate normality }

@@ -1,0 +1,66 @@
+---
+title: "Variable Correlation Visualizations"
+author: "Jonathan Tan"
+date: "8/6/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r data import1}
+train.data1 <- read.csv("D:/SMU/DS 6371 Stat Foundations For Data Science/PROJECT/train.csv")
+test.data1 <- read.csv("D:/SMU/DS 6371 Stat Foundations For Data Science/PROJECT/test.csv")
+```
+
+```{r neighborhood scoped}
+#narrow training data to relevant 3 neighborhoods
+t3 <- train.data1[which(train.data1$Neighborhood == "NAmes" | train.data1$Neighborhood == "Edwards" | train.data1$Neighborhood == "BrkSide"), ]
+```
+```{r filter nas}
+x <- colSums(is.na(train.data1)) #list of na's per column
+y <- as.data.frame(x)
+z <- subset(y, x != 0) #show only fields that have NA's in them 
+names(z) <- c( "Number of NA's")
+z
+full <- subset(y, x == 0)#show columns with no na's
+names(full) <- c("Variables with no NA's")
+full
+```
+
+
+```{r ggplots}
+library(ggplot2)
+ggplot(data = t3, mapping = aes(x = SalePrice, y = HouseStyle, color = t3$HouseStyle)) + geom_point() 
+
+ggplot(data = t3, mapping = aes(x = SalePrice,  color = t3$HouseStyle)) + geom_histogram() 
+#kinda looks normal??
+
+ggplot(data = t3, mapping = aes(x = SalePrice, y = YearRemodAdd, color = t3$YearRemodAdd)) + geom_point()
+#year doesn't look too linear, slight influence
+
+ggplot(data = t3, mapping = aes(x = SalePrice, y = GarageCars, color = t3$GarageCars)) + geom_point()
+#not enough data from 3 and 4 car garages, 2 does seem significantly better than none
+
+ggplot(data = t3, mapping = aes(x = Neighborhood, y = SalePrice, color = HouseStyle)) +
+  geom_point()
+#1story houses appear lower priced on average
+
+ggplot(t3, aes(x = SalePrice, fill = Heating)) +
+  geom_histogram()
+#huge majority of houses have gas heating, cannot draw significance from this one? 
+
+ggplot(t3, aes(x = MSZoning,  fill = Street)) + 
+  geom_histogram(stat = "count")
+#don't even know what this one means, has many gaps in data
+
+ggplot(data = t3, mapping = aes(x = Neighborhood, y = SalePrice, fill = HouseStyle)) + geom_boxplot()
+#2story houses appear to have a higher than average sale price in all neighborhoods, this might correlate with area though
+
+ggplot(data = t3, mapping = aes(x = LotShape, y = SalePrice, fill = Neighborhood)) + geom_boxplot()
+#lot shape seems to lower range of sale price if irregular AND in BrkSide, but not if in NAmes
+
+
+```
