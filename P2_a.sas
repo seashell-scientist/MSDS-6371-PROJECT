@@ -69,8 +69,8 @@ Utilities
 */
 
 data work.raw_train;
-infile '/home/u38097850/DS6371/Project/train.csv' dsd truncover;
-file '/home/u38097850/DS6371/Project/train_to_sas.csv' dsd;
+infile '/folders/myfolders/Project/train.csv' dsd truncover;
+file '/folders/myfolders/Project/train_to_sas.csv' dsd;
 length word $200;
 do i=1 to 81;
 input word @;
@@ -81,8 +81,8 @@ put;
 run;
 
 data work.raw_test;
-infile '/home/u38097850/DS6371/Project/test.csv' dsd truncover;
-file '/home/u38097850/DS6371/Project/test_to_sas.csv' dsd;
+infile '/folders/myfolders/Project/test.csv' dsd truncover;
+file '/folders/myfolders/Project/test_to_sas.csv' dsd;
 length word $200;
 do i=1 to 81;
 input word @;
@@ -93,12 +93,12 @@ put;
 run;
 
 
-proc import out=work.train datafile='/home/u38097850/DS6371/Project/train_to_sas.csv' dbms=csv replace;
+proc import out=work.train datafile='/folders/myfolders/Project/train_to_sas.csv' dbms=csv replace;
 getnames=yes;
 datarow=2;
 run;
 
-proc import out=work.test datafile='/home/u38097850/DS6371/Project/test_to_sas.csv' dbms=csv replace;
+proc import out=work.test datafile='/folders/myfolders/Project/test_to_sas.csv' dbms=csv replace;
 getnames=yes;
 datarow=2;
 run;
@@ -128,10 +128,23 @@ if Garagetype  = ' ' then Garagetype   = 'None';
 if GarageFinish= ' ' then GarageFinish = 'None';
 if GarageQual  = ' ' then GarageQual   = 'None';
 if GarageCond  = ' ' then GarageCond   = 'None';
+if Utilities   = ' ' then Utilities    = 'None';
+if Functional  = ' ' then Functional   = 'Typ';
 /* for these three, replace missing values with means */
 if LotFrontage = ' ' then LotFrontage  = 70;
 if MasVnrArea  = ' ' then MasVnrArea   = 104;
 if GarageYrBlt = ' ' then GarageYrBlt  = 1978;
+/* for these, replace with 0 */
+if BsmtFinSF1  = ' ' then BsmtFinSF1   = 0;
+if BsmtFinSF2  = ' ' then  BsmtFinSF2 = 0;
+if BsmtFinSF   = ' ' then BsmtFinSF = 0;
+if TotalBsmtSF = ' ' then TotalBsmtSF = 0;
+if BsmtFullBath  = ' ' then BsmtFullBath = 0;
+if BsmtHalfBath  = ' ' then BsmtHalfBath = 0;
+if GarageCars   = ' ' then GarageCars = 0;
+/* sane values */
+if GarageCars   = 0 then GarageArea = 0;
+if MSZoning    = ' ' then MSZoning = 'None';
 run;
 
 data clean_test;
@@ -160,21 +173,30 @@ if Garagetype  = ' ' then Garagetype   = 'None';
 if GarageFinish= ' ' then GarageFinish = 'None';
 if GarageQual  = ' ' then GarageQual   = 'None';
 if GarageCond  = ' ' then GarageCond   = 'None';
+if Utilities   = ' ' then Utilities    = 'None';
+if Functional  = ' ' then Functional   = 'Typ';
+/* for these, replace with mean */
 if LotFrontage = ' ' then LotFrontage  = 70;
 if MasVnrArea  = ' ' then MasVnrArea   = 104;
 if GarageYrBlt = ' ' then GarageYrBlt  = 1978;
+/* for these, replace with 0 */
+if BsmtFinSF1  = ' ' then BsmtFinSF1   = 0;
+if BsmtFinSF2  = ' ' then  BsmtFinSF2 = 0;
+if BsmtFinSF   = ' ' then BsmtFinSF = 0;
+if TotalBsmtSF = ' ' then TotalBsmtSF = 0;
+if BsmtFullBath  = ' ' then BsmtFullBath = 0;
+if BsmtHalfBath  = ' ' then BsmtHalfBath = 0;
+if GarageCars   = ' ' then GarageCars = 0;
+/* sane values */
+if GarageCars   = 0 then GarageArea = 0;
+if MSZoning    = ' ' then MSZoning = 'None';
 run;
 
 data union;
 set clean_train clean_test;
 run;
 
-ods rtf file='/home/u38097850/DS6371/Project/Prob_2_results_06Aug19.rtf';
-
-proc sgpanel data=work.union;
-panelby Neighborhood / columns=5 rows=5;symbol c=blue v=dot;
-scatter x=GrLivArea y=logp;
-run;
+ods rtf file='/folders/myfolders/Project/Prob_2_results_08Aug19.rtf';
 
 proc glm data=work.union;
 Class 
@@ -297,63 +319,30 @@ run;
 
 proc glm data=work.union;
 Class 
-BedroomAbvGr 
 BldgType     
-BsmtCond       
-BsmtExposure  
-BsmtFinType1 
-BsmtFinType2  
 BsmtFullBath  
-BsmtHalfBath  
-BsmtQual     
-CentralAir    
-Condition1 
-Condition2    
-Electrical 
-ExterCond 
-Exterior1st   
-Exterior2nd  
-ExterQual     
-Foundation    
-Heating      
-HeatingQC      
-HouseStyle     
-LandContour 
-LandSlope      
-LotConfig    
-LotShape       
-MasVnrType     
-MSSubClass    
 MSZoning      
 Neighborhood   
-RoofMatl 
-RoofStyle     
-SaleCondition   
-SaleType     
-Street       
-Utilities     
-;
-model logp = 
-/* categorical */
+RoofMatl;
+model SalePrice = 
 BldgType     
 BsmtFullBath  
 MSZoning      
 Neighborhood   
 RoofMatl 
-/* numeric */
 GrLivArea      
 YearBuilt    
 OverallQual  
 OverallCond  
 TotalBsmtSF  
-GarageArea  
-;
+GarageArea;
 output out=modest p=Predict;
 run;
 
 data modest_sub;
 set modest;
-if Predict  > 0 then SalePrice = exp(Predict);
+if ((Predict = .) and (SalePrice = .)) then Predict = 180921.2;
+if Predict  > 10000 then SalePrice = Predict;
 if Predict <= 0 then SalePrice = 10000;
 keep id SalePrice;
 where id > 1460;
