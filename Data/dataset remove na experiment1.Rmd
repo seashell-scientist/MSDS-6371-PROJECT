@@ -1,0 +1,103 @@
+---
+title: "p2 clean training data"
+author: "Jonathan Tan"
+date: "8/8/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+goal: sub in categorical variable "none" for missing NA's on certain variables
+```{r data import}
+train.data1 <- read.csv("D:/SMU/DS 6371 Stat Foundations For Data Science/PROJECT/train.csv")
+test.data1 <- read.csv("D:/SMU/DS 6371 Stat Foundations For Data Science/PROJECT/test.csv")
+
+```
+
+```{r neighborhood scoped}
+#narrow training data to relevant 3 neighborhoods
+
+train.data2 <- train.data1[which(train.data1$Neighborhood == "NAmes" | train.data1$Neighborhood == "Edwards" | train.data1$Neighborhood == "BrkSide"), ]
+
+test.data2 <- test.data1[which(train.data1$Neighborhood == "NAmes" | test.data1$Neighborhood == "Edwards" | test.data1$Neighborhood == "BrkSide"), ]
+```
+
+```{r print scoped test and train}
+#setwd("D:/SMU/DS 6371 Stat Foundations For Data Science/PROJECT")
+write.csv(train.data2, file = "training set 3 neighborhoods.csv")
+write.csv(test.data2, file = "testing set 3 neighborhoods.csv")
+```
+look at table, values that can have NA logically replaced with "none" 
+BsmtQual BsmtCond BsmtExposure BsmtFinType1 BsmtFinType2 Fireplace GarageType GarageFinish GarageQual GarageCond PoolQC Fence MscFeature Alley
+GarageYrBlt currently looks like houses with no garages have 2000 year old garages, may throw off regerssion if we pick that variable 
+```{r add "none"}
+#first we'll try all replacing NA;s of certain columns with none? 
+#test with garage type
+summary(train.data2$GarageType)
+change.locations <- c("BsmtQual", "BsmtCond", "BsmtExposure",  "BsmtFinType1", "BsmtFinType2", "Electrical",  "Fireplace", "GarageType", "GarageFinish", "GarageQual", "GarageCond", "PoolQC", "Fence", "MiscFeature ", "Alley")
+q <- sapply(train.data2, is.factor) #check for factors whole dataframe
+train.data2[q] <- lapply(train.data2[q], as.character) #change all factors to characters
+
+train.data2[change.locations,][is.na(train.data2[change.locations,])] <- "None"
+```
+```{r specifics}
+train.data2["LotFrontage"][is.na(train.data2["LotFrontage"])] <- "None"
+train.data2["Alley"][is.na(train.data2["Alley"])] <- "None"
+train.data2["BsmtQual"][is.na(train.data2["BsmtQual"])] <- "None"
+train.data2["BsmtCond"][is.na(train.data2["BsmtCond"])] <- "None"
+train.data2["BsmtExposure"][is.na(train.data2["BsmtExposure"])] <- "None"
+train.data2["BsmtFinType1"][is.na(train.data2["BsmtFinType1"])] <- "None"
+train.data2["BsmtFinType2"][is.na(train.data2["BsmtFinType2"])] <- "None"
+train.data2["FireplaceQu"][is.na(train.data2["FireplaceQu"])] <- "None"
+train.data2["GarageType"][is.na(train.data2["GarageType"])] <- "None"
+train.data2["GarageYrBlt"][is.na(train.data2["GarageYrBlt"])] <- "None"
+train.data2["GarageFinish"][is.na(train.data2["GarageFinish"])] <- "None"
+train.data2["GarageQual"][is.na(train.data2["GarageQual"])] <- "None"
+train.data2["GarageCond"][is.na(train.data2["GarageCond"])] <- "None"
+train.data2["PoolQC"][is.na(train.data2["PoolQC"])] <- "None"
+train.data2["Fence"][is.na(train.data2["Fence"])] <- "None"
+train.data2["MiscFeature"][is.na(train.data2["MiscFeature"])] <- "None"
+#might come back and get this to iterate through a list for the features, since the combined list doesn't seem to work
+
+```
+
+```{r print scoped test and train fith nones}
+train.data3 <- train.data2
+train.data4 <- as.factor(train.data3)
+#test.data2 <- test.data3
+#setwd("D:/SMU/DS 6371 Stat Foundations For Data Science/PROJECT")
+write.csv(train.data3, file = "training set 3n as char.csv")
+write.csv(train.data4, file = "training set 3n as factor.csv")
+#write.csv(test.data2, file = "testing set 3 neighborhoods.csv")
+```
+
+```{r filter nas}
+x <- colSums(is.na(train.data2)) #list of na's per column
+y <- as.data.frame(x)
+z <- subset(y, x != 0) #show only fields that have NA's in them 
+names(z) <- c( "Number of NA's")
+z
+full <- subset(y, x == 0)#show columns with no na's
+names(full) <- c("Variables with no NA's")
+full
+```
+
+```{r replacement example }
+set.seed(1234)
+x <- data.frame(a=sample(c(1,2,NA), 10, replace=T),
+                b=sample(c(1,2,NA), 10, replace=T), 
+                c=sample(c(1:5,NA), 10, replace=T))
+
+x[c("a", "b")][is.na(x[c("a", "b")])] <- "none"
+
+y <- data.frame(train.data2$GarageType, train.data2$Fence, stringsAsFactors = FALSE)
+z <- head(y, 20)
+q <- sapply(z, is.factor) #checks if the column of the dataset is a factor 
+#if it is -> 
+z[q] <- lapply(z[q], as.character) #changes factor to character so we can use the next line under here 
+
+z["train.data2.Fence"][is.na(z["train.data2.Fence"])] <- "None"
+z
+```
