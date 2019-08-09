@@ -319,31 +319,26 @@ run;
 
 proc glm data=work.union;
 Class 
-BldgType     
 BsmtFullBath  
-MSZoning      
-Neighborhood   
-RoofMatl;
-model SalePrice = 
-BldgType     
+Neighborhood;
+model logp = 
 BsmtFullBath  
-MSZoning      
 Neighborhood   
-RoofMatl 
 GrLivArea      
-YearBuilt    
 OverallQual  
 OverallCond  
-TotalBsmtSF  
 GarageArea;
 output out=modest p=Predict;
 run;
 
 data modest_sub;
 set modest;
-/* if ((Predict = .) and (SalePrice = .)) then Predict = 180921.2; */
-if Predict  > 1000 then SalePrice = Predict;
-if Predict <= 1000 then SalePrice = 1000;
+if Predict  > log(10000) then SalePrice = exp(Predict);
+if Predict <= log(10000) then SalePrice = 10000;
+/*
+if Predict  > 10000 then SalePrice = Predict;
+if Predict <= 10000 then SalePrice = 10000;
+*/
 keep id SalePrice;
 where id > 1460;
 run;
