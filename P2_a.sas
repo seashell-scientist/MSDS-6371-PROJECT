@@ -144,7 +144,7 @@ if BsmtHalfBath  = ' ' then BsmtHalfBath = 0;
 if GarageCars   = ' ' then GarageCars = 0;
 /* sane values */
 if GarageCars   = 0 then GarageArea = 0;
-if MSZoning    = ' ' then MSZoning = 'None';
+if MSZoning    = ' ' then MSZoning = 'RL';
 run;
 
 data clean_test;
@@ -189,7 +189,7 @@ if BsmtHalfBath  = ' ' then BsmtHalfBath = 0;
 if GarageCars   = ' ' then GarageCars = 0;
 /* sane values */
 if GarageCars   = 0 then GarageArea = 0;
-if MSZoning    = ' ' then MSZoning = 'None';
+if MSZoning    = ' ' then MSZoning = 'RL';
 run;
 
 data union;
@@ -341,9 +341,9 @@ run;
 
 data modest_sub;
 set modest;
-if ((Predict = .) and (SalePrice = .)) then Predict = 180921.2;
-if Predict  > 10000 then SalePrice = Predict;
-if Predict <= 0 then SalePrice = 10000;
+/* if ((Predict = .) and (SalePrice = .)) then Predict = 180921.2; */
+if Predict  > 1000 then SalePrice = Predict;
+if Predict <= 1000 then SalePrice = 1000;
 keep id SalePrice;
 where id > 1460;
 run;
