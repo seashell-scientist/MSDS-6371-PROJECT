@@ -194,6 +194,8 @@ run;
 
 data union;
 set clean_train clean_test;
+if id = 1299 then delete;
+if id = 524  then delete;
 run;
 
 ods rtf file='/folders/myfolders/Project/Prob_2_results_08Aug19.rtf';
@@ -307,8 +309,12 @@ run;
 
 data creosote_sub;
 set creosote;
-if Predict  > 0 then SalePrice = exp(Predict);
-if Predict <= 0 then SalePrice = 10000;
+if Predict  > log(10000) then SalePrice = exp(Predict);
+if Predict <= log(10000) then SalePrice = 10000;
+/*
+if Predict  > 10000 then SalePrice = Predict;
+if Predict <= 10000 then SalePrice = 10000;
+*/
 keep id SalePrice;
 where id > 1460;
 run;
@@ -317,17 +323,53 @@ proc means data = creosote_sub;
 var SalePrice;
 run;
 
-proc glm data=work.union;
-Class 
-BsmtFullBath  
-Neighborhood;
+
+proc reg data=work.union;
 model logp = 
-BsmtFullBath  
-Neighborhood   
 GrLivArea      
 OverallQual  
 OverallCond  
-GarageArea;
+GarageArea
+/ r vif clb influence;
+output out=union_r student=studresids cookd = cook h = leverage;
+run;
+
+title "Large studentized residuals";
+proc print data=union_r;
+var id cook studresids leverage;
+where studresids > 7.5 or studresids < -7.5;
+run;
+
+title "Large Cooks D";
+proc print data=union_r;
+var id cook studresids leverage;
+where cook > 0.1;
+run;
+
+title "Large Leverage";
+proc print data=union_r;
+var id cook studresids leverage;
+where leverage > 0.4;
+run;
+
+
+proc glm data=work.union plots=all;
+Class 
+MSZoning
+Neighborhood
+SaleCondition;
+model logp = 
+MSZoning
+Neighborhood
+SaleCondition
+GarageArea  
+GrLivArea      
+LotArea      
+LotFrontage    
+OverallCond  
+OverallQual  
+TotalBsmtSF  
+YearBuilt;
 output out=modest p=Predict;
 run;
 
