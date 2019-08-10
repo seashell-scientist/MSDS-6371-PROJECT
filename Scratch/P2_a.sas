@@ -1,76 +1,96 @@
-/* convenient list of variables, alphebetized */
+/* not in model itself 
+  id
+  SalePrice */
 
-/* numeric 
-Id
-SalePrice
-BsmtFinSF1   
-BsmtFinSF2  
-BsmtUnfSf      
-EnclosedPorch  
-GarageArea  
-GarageYrBlt  
-GrLivArea      
-LotArea      
-LotFrontage    
-LowQualFinSF 
-MasVnrArea   
-MiscVal        
-MoSold       
-OpenPorchSF    
-OverallCond  
-OverallQual  
-PoolArea 
-ScreenPorch  
-TotalBsmtSF  
-TotRmsAbvGrd   
-WoodDeckSF 
-x1stFlrSF     
-x2ndFlrSF   
-x3SsnPorch  
-YearBuilt    
-YearRemodAdd   
-YrSold   
-*/
+/* numeric (35)*/
+%macro numeric_vars;
+BedroomAbvGr
+BsmtFinSF1
+BsmtFinSF2
+BsmtFullBath
+BsmtHalfBath
+BsmtUnfSF
+EnclosedPorch
+Fireplaces
+FullBath
+GarageArea
+GarageCars
+GarageYrBlt
+GrLivArea
+HalfBath
+KitchenAbvGr
+LotArea
+LotFrontage
+LowQualFinSF
+MasVnrArea
+MiscVal
+MoSold
+OpenPorchSF
+OverallCond
+OverallQual
+PoolArea
+ScreenPorch
+TotalBsmtSF
+TotRmsAbvGrd
+WoodDeckSF
+x1stFlrSF
+x2ndFlrSF
+x3SsnPorch
+YearBuilt
+YearRemodAdd
+YrSold
+%mend numeric_vars;
 
-/* categorical
-BedroomAbvGr 
-BldgType     
-BsmtCond       
-BsmtExposure  
-BsmtFinType1 
-BsmtFinType2  
-BsmtFullBath  
-BsmtHalfBath  
-BsmtQual     
-CentralAir    
-Condition1 
-Condition2    
-Electrical 
-ExterCond 
-Exterior1st   
-Exterior2nd  
-ExterQual     
-Foundation    
-Heating      
-HeatingQC      
-HouseStyle     
-LandContour 
-LandSlope      
-LotConfig    
-LotShape       
-MasVnrType     
-MSSubClass    
-MSZoning      
-Neighborhood   
-RoofMatl 
-RoofStyle     
-SaleCondition   
-SaleType     
-Street       
-Utilities     
-*/
+/* categorical (44) */
+%macro categorical_vars;
+Alley
+BldgType
+BsmtCond
+BsmtExposure
+BsmtFinType1
+BsmtFinType2
+BsmtQual
+CentralAir
+Condition1
+Condition2
+Electrical
+ExterCond
+Exterior1st
+Exterior2nd
+ExterQual
+Fence
+FireplaceQu
+Foundation
+Functional
+GarageCond
+GarageFinish
+GarageQual
+GarageType
+Heating
+HeatingQC
+HouseStyle
+KitchenQual
+LandContour
+LandSlope
+LotConfig
+LotShape
+MasVnrType
+MiscFeature
+MSSubClass
+MSZoning
+Neighborhood
+PavedDrive
+PoolQC
+RoofMatl
+RoofStyle
+SaleCondition
+SaleType
+Street
+Utilities
+%mend categorical_vars;
 
-/* simply read in the raw data, translating any 'NA' values into blanks 
+/* Here is where it really starts 
+   simply read in the raw data, translating any 'NA' values into blanks 
    result will be all character data */
 data work.raw_train;
 infile '/folders/myfolders/Project/train.csv' dsd truncover;
@@ -115,6 +135,9 @@ data clean_train;
 set work.train;
 logp = log(SalePrice);
 /* several variables that were 'NA' actually should be given meaningful values */
+if Alley       = ' ' then Alley        = 'None';
+if KitchenQual = ' ' then KitchenQual  = 'TA';
+if PavedDrive  = ' ' then PavedDrive   = 'Unk'; 
 if GarageType  = ' ' then GarageType   = 'None';
 if FireplaceQu = ' ' then FireplaceQu  = 'None';
 if GarageType  = ' ' then GarageType   = 'None';
@@ -162,6 +185,9 @@ set test;
 SalePrice = .;
 logp = .;
 /* several variables that were 'NA' actually should be given meaningful values */
+if Alley       = ' ' then Alley        = 'None';
+if KitchenQual = ' ' then KitchenQual  = 'TA';
+if PavedDrive  = ' ' then PavedDrive   = 'Unk'; 
 if GarageType  = ' ' then GarageType   = 'None';
 if FireplaceQu = ' ' then FireplaceQu  = 'None';
 if GarageType  = ' ' then GarageType   = 'None';
@@ -205,120 +231,38 @@ run;
 /* put the training and test datasets together */
 data union;
 set clean_train clean_test;
+/* Here is where I delete by observation number the points
+   determined to be outliers 
+   
+   keep them all in for now...
+   
 if id = 1299 then delete;
 if id = 524  then delete;
+
+  */
 run;
 
-/* open up hard copy */
-ods rtf file='/folders/myfolders/Project/Prob_2_results_08Aug19.rtf';
 
-/* first proc glm attempts to put all variables in.
-   Call the result creosote, in honor of the character in 
-   Monty Python's meaning of life, who tried to include
-   everything */
-proc glm data=work.union;
+/* open up hard copy */
+ods rtf file='/folders/myfolders/Project/Prob_2_results_10Aug19.rtf';
+
+/*======================================================================== 
+  start of proc to include everything
+  ========================================================================
+  first proc glm attempts to put all variables in.
+  Call the result creosote, in honor of the character in 
+  Monty Python's meaning of life, who tried to include
+  everything
+  */
+proc glm data=work.union plots=all;
 Class 
-BedroomAbvGr 
-BldgType     
-BsmtCond       
-BsmtExposure  
-BsmtFinType1 
-BsmtFinType2  
-BsmtFullBath  
-BsmtHalfBath  
-BsmtQual     
-CentralAir    
-Condition1 
-Condition2    
-Electrical 
-ExterCond 
-Exterior1st   
-Exterior2nd  
-ExterQual     
-Foundation    
-Heating      
-HeatingQC      
-HouseStyle     
-LandContour 
-LandSlope      
-LotConfig    
-LotShape       
-MasVnrType     
-MSSubClass    
-MSZoning      
-Neighborhood   
-RoofMatl 
-RoofStyle     
-SaleCondition   
-SaleType     
-Street       
-Utilities     
+%categorical_vars
 ;
 model logp = 
 /* categorical */
-BedroomAbvGr 
-BldgType     
-BsmtCond       
-BsmtExposure  
-BsmtFinType1 
-BsmtFinType2  
-BsmtFullBath  
-BsmtHalfBath  
-BsmtQual     
-CentralAir    
-Condition1 
-Condition2    
-Electrical 
-ExterCond 
-Exterior1st   
-Exterior2nd  
-ExterQual     
-Foundation    
-Heating      
-HeatingQC      
-HouseStyle     
-LandContour 
-LandSlope      
-LotConfig    
-LotShape       
-MasVnrType     
-MSSubClass    
-MSZoning      
-Neighborhood   
-RoofMatl 
-RoofStyle     
-SaleCondition   
-SaleType     
-Street       
-Utilities     
+%categorical_vars
 /* numeric */
-BsmtFinSF1   
-BsmtFinSF2  
-BsmtUnfSf      
-EnclosedPorch  
-GarageArea  
-GarageYrBlt  
-GrLivArea     
-LotArea      
-LotFrontage    
-LowQualFinSF 
-MasVnrArea   
-MiscVal        
-MoSold       
-OpenPorchSF    
-OverallCond  
-OverallQual  
-PoolArea 
-ScreenPorch  
-TotalBsmtSF  
-TotRmsAbvGrd   
-WoodDeckSF 
-x1stFlrSF     
-x2ndFlrSF   
-x3SsnPorch  
-YearBuilt    
-YearRemodAdd   
-YrSold   
+%numeric_vars
 ;
 output out=creosote_result p=Predict;
 run;
@@ -376,7 +320,10 @@ where leverage > 0.4;
 run;
 */
 
-/* modest model, with a sensible set of variables */
+/*======================================================================== 
+  start of modest model, selected by hand
+  ========================================================================
+  */
 proc glm data=work.union plots=all;
 Class 
 MSZoning
@@ -417,119 +364,28 @@ proc means data = modest_sub;
 var SalePrice;
 run;
 
+/*======================================================================== 
+  start of proc for select forward
+  ========================================================================*/
 proc glmselect data=union;
 Class 
-BedroomAbvGr 
-BldgType     
-BsmtCond       
-BsmtExposure  
-BsmtFinType1 
-BsmtFinType2  
-BsmtFullBath  
-BsmtHalfBath  
-BsmtQual     
-CentralAir    
-Condition1 
-Condition2    
-Electrical 
-ExterCond 
-Exterior1st   
-Exterior2nd  
-ExterQual     
-Foundation    
-Heating      
-HeatingQC      
-HouseStyle     
-LandContour 
-LandSlope      
-LotConfig    
-LotShape       
-MasVnrType     
-MSSubClass    
-MSZoning      
-Neighborhood   
-RoofMatl 
-RoofStyle     
-SaleCondition   
-SaleType     
-Street       
-Utilities     
+%categorical_vars
 ;
-model logp = GrLivArea
-/* categorical */
-BedroomAbvGr 
-BldgType     
-BsmtCond       
-BsmtExposure  
-BsmtFinType1 
-BsmtFinType2  
-BsmtFullBath  
-BsmtHalfBath  
-BsmtQual     
-CentralAir    
-Condition1 
-Condition2    
-Electrical 
-ExterCond 
-Exterior1st   
-Exterior2nd  
-ExterQual     
-Foundation    
-Heating      
-HeatingQC      
-HouseStyle     
-LandContour 
-LandSlope      
-LotConfig    
-LotShape       
-MasVnrType     
-MSSubClass    
-MSZoning      
-Neighborhood   
-RoofMatl 
-RoofStyle     
-SaleCondition   
-SaleType     
-Street       
-Utilities     
-/* numeric */
-BsmtFinSF1   
-BsmtFinSF2  
-BsmtUnfSf      
-EnclosedPorch  
-GarageArea  
-GarageYrBlt  
-GrLivArea     
-LotArea      
-LotFrontage    
-LowQualFinSF 
-MasVnrArea   
-MiscVal        
-MoSold       
-OpenPorchSF    
-OverallCond  
-OverallQual  
-PoolArea 
-ScreenPorch  
-TotalBsmtSF  
-TotRmsAbvGrd   
-WoodDeckSF 
-x1stFlrSF     
-x2ndFlrSF   
-x3SsnPorch  
-YearBuilt    
-YearRemodAdd   
-YrSold   
-/ selection=Stepwise(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;
-output out=stepwise_result p=Predict;
+model logp = 
+/* categorical ( 35 variables ) */
+%categorical_vars
+/* numeric (27 variables) */
+%numeric_vars
+/ selection=Forward(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;
+output out=forward_result p=Predict;
 run;
 
 /* make a submission dataset, with only the id and Price.
    Keep prices in sensible range (over $10k)
    drop all other values, and keep only observations
    from the test dataset */
-data stepwise_sub;
-set stepwise_result;
+data forward_sub;
+set forward_result;
 if Predict  > log(10000) then SalePrice = exp(Predict);
 if Predict <= log(10000) then SalePrice = 10000;
 /*
@@ -539,6 +395,71 @@ if Predict <= 10000 then SalePrice = 10000;
 keep id SalePrice;
 where id > 1460;
 run;
+
+/*======================================================================== 
+  start of proc for select backward
+  ========================================================================*/
+proc glmselect data=union;
+Class 
+%categorical_vars
+;
+model logp = 
+/* categorical ( 35 variables ) */
+%categorical_vars
+/* numeric (27 variables) */
+%numeric_vars
+/ selection=Backward(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;
+output out=backward_result p=Predict;
+run;
+
+/* make a submission dataset, with only the id and Price.
+   Keep prices in sensible range (over $10k)
+   drop all other values, and keep only observations
+   from the test dataset */
+data backward_sub;
+set backward_result;
+if Predict  > log(10000) then SalePrice = exp(Predict);
+if Predict <= log(10000) then SalePrice = 10000;
+/*
+if Predict  > 10000 then SalePrice = Predict;
+if Predict <= 10000 then SalePrice = 10000;
+*/
+keep id SalePrice;
+where id > 1460;
+run;
+
+/*========================================================================  
+  start of proc for select stepwise 
+  ========================================================================*/ 
+proc glmselect data=union; 
+Class  
+%categorical_vars 
+; 
+model logp =  
+/* categorical ( 35 variables ) */ 
+%categorical_vars 
+/* numeric (27 variables) */ 
+%numeric_vars 
+/ selection=Stepwise(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq; 
+output out=stepwise_result p=Predict; 
+run; 
+ 
+/* make a submission dataset, with only the id and Price. 
+   Keep prices in sensible range (over $10k) 
+   drop all other values, and keep only observations 
+   from the test dataset */ 
+data stepwise_sub; 
+set stepwise_result; 
+if Predict  > log(10000) then SalePrice = exp(Predict); 
+if Predict <= log(10000) then SalePrice = 10000; 
+/* 
+if Predict  > 10000 then SalePrice = Predict; 
+if Predict <= 10000 then SalePrice = 10000; 
+*/ 
+keep id SalePrice; 
+where id > 1460; 
+run; 
+
 
 /* close hard copy */
 ods rtf close;
