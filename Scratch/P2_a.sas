@@ -228,33 +228,18 @@ if GarageCars   = 0 then GarageArea = 0;
 if MSZoning    = ' ' then MSZoning = 'RL';
 run;
 
-/* put the training and test datasets together */
-data union;
-set clean_train clean_test;
-/* Here is where I delete by observation number the points
-   determined to be outliers 
-   
-   keep them all in for now...
-   
-if id = 1299 then delete;
-if id = 524  then delete;
-
-  */
-run;
-
-
 /* open up hard copy */
 ods rtf file='/folders/myfolders/Project/Prob_2_results_10Aug19.rtf';
 
 /*======================================================================== 
-  start of proc to include everything
+  start of residual analysis
   ========================================================================
-  first proc glm attempts to put all variables in.
-  Call the result creosote, in honor of the character in 
-  Monty Python's meaning of life, who tried to include
-  everything
+  first proc glm attempts to put all variables in.  Call
+  the result creosote, in honor of the character in
+  Monty Python's 'Meaning of Life', who tried to include everything.
   */
-proc glm data=work.union plots=all;
+title 'Training on all data for residual analysis';
+proc glm data=work.clean_train plots=all;
 Class 
 %categorical_vars
 ;
@@ -264,67 +249,47 @@ model logp =
 /* numeric */
 %numeric_vars
 ;
-output out=creosote_result p=Predict;
+output out=creosote_result p=Predict cookd = cook h = leverage student = studre;
 run;
 
-/* make a submission dataset, with only the id and Price.
-   Keep prices in sensible range (over $10k)
-   drop all other values, and keep only observations
-   from the test dataset */
-data creosote_sub;
-set creosote_result;
-if Predict  > log(10000) then SalePrice = exp(Predict);
-if Predict <= log(10000) then SalePrice = 10000;
-/*
-if Predict  > 10000 then SalePrice = Predict;
-if Predict <= 10000 then SalePrice = 10000;
-*/
-keep id SalePrice;
-where id > 1460;
-run;
-
-/* sanity check - look at means of the submission */
-proc means data = creosote_sub;
-var SalePrice;
-run;
-
-/* Study the residuals, to look for outliers */
-/* 
-proc reg data=work.union;
-model logp = 
-GrLivArea      
-OverallQual  
-OverallCond  
-GarageArea
-/ r vif clb influence;
-output out=union_r student=studresids cookd = cook h = leverage;
-run;
-
-
-title "Large studentized residuals";
-proc print data=union_r;
-var id cook studresids leverage;
-where studresids > 7.5 or studresids < -7.5;
-run;
-
-title "Large Cooks D";
-proc print data=union_r;
-var id cook studresids leverage;
+title 'Large cooks d';
+proc print data=work.creosote_result;
+var id Neighborhood GrLivArea SalePrice cook leverage studre;
 where cook > 0.1;
 run;
 
-title "Large Leverage";
-proc print data=union_r;
-var id cook studresids leverage;
-where leverage > 0.4;
+title 'Large Leverage';
+proc print data=work.creosote_result;
+var id Neighborhood GrLivArea SalePrice cook leverage studre;
+where leverage > 0.9;
 run;
-*/
+
+title 'Large studentized residuals';
+proc print data=work.creosote_result;
+var id Neighborhood GrLivArea SalePrice cook leverage studre;
+where studre not between -7.5 and 7.5;
+run;
+
+/* put the training and test datasets together */
+data union_all;
+set clean_train clean_test;
+run;
+
+data union_no_outliers;
+set union_all;
+/* this had an exceptionally high sales price */
+if id = 826 then delete;
+/* this is an exceptionally large home */
+if id = 524 then delete;
+run;
+
 
 /*======================================================================== 
-  start of modest model, selected by hand
+  start of custom model, selected by hand
   ========================================================================
   */
-proc glm data=work.union plots=all;
+title 'Custom Model';
+proc glm data=work.union_no_outliers plots=all;
 Class 
 MSZoning
 Neighborhood
@@ -341,15 +306,15 @@ OverallCond
 OverallQual  
 TotalBsmtSF  
 YearBuilt;
-output out=modest_result p=Predict;
+output out=custom_result p=Predict;
 run;
 
 /* make a submission dataset, with only the id and Price.
    Keep prices in sensible range (over $10k)
    drop all other values, and keep only observations
    from the test dataset */
-data modest_sub;
-set modest_result;
+data custom_sub;
+set custom_result;
 if Predict  > log(10000) then SalePrice = exp(Predict);
 if Predict <= log(10000) then SalePrice = 10000;
 /*
@@ -360,14 +325,15 @@ keep id SalePrice;
 where id > 1460;
 run;
 
-proc means data = modest_sub;
+proc means data = custom_sub;
 var SalePrice;
 run;
 
 /*======================================================================== 
   start of proc for select forward
   ========================================================================*/
-proc glmselect data=union;
+title 'Select by forward algorithm';
+proc glmselect data=union_no_outliers plot=coefficients;
 Class 
 %categorical_vars
 ;
@@ -399,7 +365,8 @@ run;
 /*======================================================================== 
   start of proc for select backward
   ========================================================================*/
-proc glmselect data=union;
+title 'Select by backward algorithm';
+proc glmselect data=union_no_outliers plot=coefficients;
 Class 
 %categorical_vars
 ;
@@ -431,7 +398,8 @@ run;
 /*========================================================================  
   start of proc for select stepwise 
   ========================================================================*/ 
-proc glmselect data=union; 
+title 'Select by Stepwise algorithm';
+proc glmselect data=union_no_outliers plot=coefficients; 
 Class  
 %categorical_vars 
 ; 
