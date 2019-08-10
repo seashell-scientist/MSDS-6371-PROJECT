@@ -1,3 +1,5 @@
+/* convenient list of variables, alphebetized */
+
 /* numeric 
 Id
 SalePrice
@@ -68,6 +70,8 @@ Street
 Utilities     
 */
 
+/* simply read in the raw data, translating any 'NA' values into blanks 
+   result will be all character data */
 data work.raw_train;
 infile '/folders/myfolders/Project/train.csv' dsd truncover;
 file '/folders/myfolders/Project/train_to_sas.csv' dsd;
@@ -79,7 +83,6 @@ put word @;
 end;
 put;
 run;
-
 data work.raw_test;
 infile '/folders/myfolders/Project/test.csv' dsd truncover;
 file '/folders/myfolders/Project/test_to_sas.csv' dsd;
@@ -92,17 +95,22 @@ end;
 put;
 run;
 
-
+/* now read the files from which 'NA' has been elided 
+   here is where SAS can determine the types of the columns */
 proc import out=work.train datafile='/folders/myfolders/Project/train_to_sas.csv' dbms=csv replace;
 getnames=yes;
 datarow=2;
 run;
-
 proc import out=work.test datafile='/folders/myfolders/Project/test_to_sas.csv' dbms=csv replace;
 getnames=yes;
 datarow=2;
 run;
 
+/* finally do the right thing with any blank input fields 
+   in some cases, this means changing blanks to 'None' 
+   in some cases, it means inserting a meaningful numeric value 
+   here also, i take the log of sale price, since that 
+   transform might prove useful */
 data clean_train;
 set work.train;
 logp = log(SalePrice);
@@ -147,6 +155,8 @@ if GarageCars   = 0 then GarageArea = 0;
 if MSZoning    = ' ' then MSZoning = 'RL';
 run;
 
+/* for the test dataset, also make placeholders for the modeled 
+   and its transform.  */
 data clean_test;
 set test;
 SalePrice = .;
@@ -192,14 +202,20 @@ if GarageCars   = 0 then GarageArea = 0;
 if MSZoning    = ' ' then MSZoning = 'RL';
 run;
 
+/* put the training and test datasets together */
 data union;
 set clean_train clean_test;
 if id = 1299 then delete;
 if id = 524  then delete;
 run;
 
+/* open up hard copy */
 ods rtf file='/folders/myfolders/Project/Prob_2_results_08Aug19.rtf';
 
+/* first proc glm attempts to put all variables in.
+   Call the result creosote, in honor of the character in 
+   Monty Python's meaning of life, who tried to include
+   everything */
 proc glm data=work.union;
 Class 
 BedroomAbvGr 
@@ -304,11 +320,15 @@ YearBuilt
 YearRemodAdd   
 YrSold   
 ;
-output out=creosote p=Predict;
+output out=creosote_result p=Predict;
 run;
 
+/* make a submission dataset, with only the id and Price.
+   Keep prices in sensible range (over $10k)
+   drop all other values, and keep only observations
+   from the test dataset */
 data creosote_sub;
-set creosote;
+set creosote_result;
 if Predict  > log(10000) then SalePrice = exp(Predict);
 if Predict <= log(10000) then SalePrice = 10000;
 /*
@@ -319,11 +339,13 @@ keep id SalePrice;
 where id > 1460;
 run;
 
+/* sanity check - look at means of the submission */
 proc means data = creosote_sub;
 var SalePrice;
 run;
 
-
+/* Study the residuals, to look for outliers */
+/* 
 proc reg data=work.union;
 model logp = 
 GrLivArea      
@@ -333,6 +355,7 @@ GarageArea
 / r vif clb influence;
 output out=union_r student=studresids cookd = cook h = leverage;
 run;
+
 
 title "Large studentized residuals";
 proc print data=union_r;
@@ -351,8 +374,9 @@ proc print data=union_r;
 var id cook studresids leverage;
 where leverage > 0.4;
 run;
+*/
 
-
+/* modest model, with a sensible set of variables */
 proc glm data=work.union plots=all;
 Class 
 MSZoning
@@ -370,11 +394,15 @@ OverallCond
 OverallQual  
 TotalBsmtSF  
 YearBuilt;
-output out=modest p=Predict;
+output out=modest_result p=Predict;
 run;
 
+/* make a submission dataset, with only the id and Price.
+   Keep prices in sensible range (over $10k)
+   drop all other values, and keep only observations
+   from the test dataset */
 data modest_sub;
-set modest;
+set modest_result;
 if Predict  > log(10000) then SalePrice = exp(Predict);
 if Predict <= log(10000) then SalePrice = 10000;
 /*
@@ -493,6 +521,24 @@ YearBuilt
 YearRemodAdd   
 YrSold   
 / selection=Stepwise(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;
+output out=stepwise_result p=Predict;
 run;
 
+/* make a submission dataset, with only the id and Price.
+   Keep prices in sensible range (over $10k)
+   drop all other values, and keep only observations
+   from the test dataset */
+data stepwise_sub;
+set stepwise_result;
+if Predict  > log(10000) then SalePrice = exp(Predict);
+if Predict <= log(10000) then SalePrice = 10000;
+/*
+if Predict  > 10000 then SalePrice = Predict;
+if Predict <= 10000 then SalePrice = 10000;
+*/
+keep id SalePrice;
+where id > 1460;
+run;
+
+/* close hard copy */
 ods rtf close;
