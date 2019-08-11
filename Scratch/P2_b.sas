@@ -1,4 +1,5 @@
-/* convenient list of variables, alphebetized */
+%macro interactions;
+%mend interactions;
 
 %macro numeric_vars;
 BsmtFinSF1   
@@ -76,6 +77,8 @@ if Predict <= log(10000) then SalePrice = 10000;
 keep id SalePrice;
 where id > 1460;
 run;
+proc means data=&name._sub;
+var SalePrice;
 %mend  submit;
 
 /* simply read in the raw data, translating any 'NA' values into blanks 
@@ -260,12 +263,15 @@ set union_all;
 if id = 826 then delete;
 /* this is an exceptionally large home */
 if id = 524 then delete;
+/* this is an excetionallly large home on a very large lot */
+if id = 1299 then delete;
 run;
 
 /*======================================================================== 
   start of custom model
   ========================================================================
   */
+title 'Custom';
 proc glm data=work.union_no_outliers plots=all;
 Class 
 MSZoning
@@ -282,20 +288,25 @@ LotFrontage
 OverallCond  
 OverallQual  
 TotalBsmtSF  
-YearBuilt;
-output out=custom_result p=Predict;
+YearBuilt
+%interactions
+;
+output out=custom_result p=Predict cookd = cook h = leverage student = studre;
+run;
+
+title 'Large cooks d';
+proc print data=work.custom_result;
+var id Neighborhood GrLivArea SalePrice cook leverage studre;
+where cook > 1.0;
 run;
 
 %submit(name=Custom)
-
-proc means data = custom_sub;
-var SalePrice;
-run;
 
 /*========================================================================  
   start of forward
   ======================================================================== 
   */ 
+title 'Forward';
 proc glmselect data=union_no_outliers plot=(criterionpanel coefficients); 
 Class  
 %categorical_vars 
@@ -305,6 +316,7 @@ model logp =
 %categorical_vars 
 /* numeric */
 %numeric_vars 
+%interactions
 / selection=Forward(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq; 
 output out=forward_result p=Predict; 
 run; 
@@ -315,6 +327,7 @@ run;
   start of backward
   ========================================================================  
   */  
+title 'Backward';
 proc glmselect data=union_no_outliers plot=(criterionpanel coefficients);  
 Class   
 %categorical_vars  
@@ -324,6 +337,7 @@ model logp =
 %categorical_vars  
 /* numeric */ 
 %numeric_vars  
+%interactions
 / selection=Backward(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;  
 output out=backward_result p=Predict;  
 run;  
@@ -335,6 +349,7 @@ run;
   start of stepwise
   ========================================================================
   */
+title 'Stepwise';
 proc glmselect data=union_no_outliers plot=(criterionpanel coefficients);
 Class 
 %categorical_vars
@@ -344,6 +359,7 @@ model logp =
 %categorical_vars
 /* numeric */
 %numeric_vars
+%interactions
 / selection=Stepwise(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;
 output out=stepwise_result p=Predict;
 run;
