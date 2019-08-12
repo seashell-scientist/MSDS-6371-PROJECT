@@ -1,6 +1,8 @@
+/* any interactions to be included are in this macro */
 %macro interactions;
 %mend interactions;
 
+/* this macro lists all numeric variables */
 %macro numeric_vars;
 BsmtFinSF1   
 BsmtFinSF2  
@@ -31,6 +33,9 @@ YearRemodAdd
 YrSold   
 %mend numeric_vars;
 
+/* this macro lists all categorical variables */
+/* commented out some variables that appear to be problems in either */
+/* train or test dataset */
 %macro categorical_vars;
 BedroomAbvGr 
 BldgType     
@@ -69,6 +74,8 @@ Street
 /* Utilities  */
 %mend categorical_vars;
 
+/* this macros definition computes sale price, and puts a lower */
+/* limit on it.  It also creates the submission dataset for kaggle */
 %macro submit(name=,);
 data &name._sub;
 set &name._result;
@@ -77,11 +84,11 @@ if Predict <= log(10000) then SalePrice = 10000;
 keep id SalePrice;
 where id > 1460;
 run;
-proc means data=&name._sub;
-var SalePrice;
 %mend  submit;
 
-/* simply read in the raw data, translating any 'NA' values into blanks 
+/* ======================================================= 
+   Here is where the real work starts 
+   simply read in the raw data, translating any 'NA' values into blanks 
    result will be all character data */
 data work.raw_train;
 infile '/folders/myfolders/Project/train.csv' dsd truncover;
@@ -214,12 +221,13 @@ if MSZoning    = ' ' then MSZoning = 'RL';
 run;
 
 /* open up hard copy */
-ods rtf file='/folders/myfolders/Project/Prob_2_results_10Aug19.rtf';
+ods rtf file='/folders/myfolders/Project/Prob_2_results_11Aug19.rtf';
 
 /*======================================================================== 
   start of residual analysis
   ========================================================================
   */
+title 'Residual Analysis';
 proc glm data=work.clean_train plots=all;
 Class 
 %categorical_vars
@@ -276,6 +284,9 @@ proc glm data=work.union_no_outliers plots=all;
 Class 
 MSZoning
 Neighborhood
+CentralAir
+RoofMatl
+SaleType
 SaleCondition;
 model logp = 
 MSZoning
@@ -287,20 +298,29 @@ LotArea
 LotFrontage    
 OverallCond  
 OverallQual  
-TotalBsmtSF  
 YearBuilt
+CentralAir
+BsmtFinSF1
+RoofMatl
+SaleType
+LotArea
 %interactions
 ;
 output out=custom_result p=Predict cookd = cook h = leverage student = studre;
 run;
+
+title 'means for Custom model';
+proc means data=custom_result;
+var SalePrice;
+run;
+
+%submit(name=Custom)
 
 title 'Large cooks d';
 proc print data=work.custom_result;
 var id Neighborhood GrLivArea SalePrice cook leverage studre;
 where cook > 1.0;
 run;
-
-%submit(name=Custom)
 
 /*========================================================================  
   start of forward
@@ -321,6 +341,11 @@ model logp =
 output out=forward_result p=Predict; 
 run; 
  
+title 'means for Forward-selected model';
+proc means data=forward_result;
+var SalePrice;
+run;
+
 %submit(name=forward) 
  
 /*========================================================================   
@@ -342,6 +367,12 @@ model logp =
 output out=backward_result p=Predict;  
 run;  
   
+title 'means for backward selected model';
+proc means data=backward_result;
+var SalePrice;
+run;
+
+
 %submit(name=backward)  
 
 
@@ -363,6 +394,12 @@ model logp =
 / selection=Stepwise(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;
 output out=stepwise_result p=Predict;
 run;
+
+title 'means for stepwise selected';
+proc means data=stepwise_result;
+var SalePrice;
+run;
+
 
 %submit(name=Stepwise)
 
