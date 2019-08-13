@@ -1,6 +1,10 @@
-/* any interactions to be included are in this macro */
-%macro interactions;
-%mend interactions;
+/* when including these variables in the mix,
+   proc glmselect seems to produce models that 
+   predict very low sale prices.  To avoid problems,
+   simply drop them from all models */
+%macro drop_these;
+(drop=Utilities LotConfig Condition1 Condition2)
+%mend drop_these;
 
 /* this macro lists all numeric variables */
 %macro numeric_vars;
@@ -47,8 +51,8 @@ BsmtFullBath
 BsmtHalfBath  
 BsmtQual     
 CentralAir    
-/* Condition1  */
-/* Condition2  */
+/* Condition1 */
+/* Condition2 */
 Electrical 
 ExterCond 
 Exterior1st   
@@ -60,7 +64,7 @@ HeatingQC
 HouseStyle     
 LandContour 
 LandSlope      
-/* LotConfig     */
+/* LotConfig */
 LotShape       
 MasVnrType     
 MSSubClass    
@@ -130,7 +134,8 @@ run;
    here also, i take the log of sale price, since that 
    transform might prove useful */
 data clean_train;
-set work.train;
+/* delete utilities since it has only a few values that are not 'AllPub' */
+set work.train %drop_these;
 logp = log(SalePrice);
 /* several variables that were 'NA' actually should be given meaningful values */
 if GarageType  = ' ' then GarageType   = 'None';
@@ -154,7 +159,6 @@ if Garagetype  = ' ' then Garagetype   = 'None';
 if GarageFinish= ' ' then GarageFinish = 'None';
 if GarageQual  = ' ' then GarageQual   = 'None';
 if GarageCond  = ' ' then GarageCond   = 'None';
-/* if Utilities   = ' ' then Utilities    = 'None'; */
 if Functional  = ' ' then Functional   = 'Typ';
 /* for these three, replace missing values with means */
 if LotFrontage = ' ' then LotFrontage  = 70;
@@ -176,7 +180,7 @@ run;
 /* for the test dataset, also make placeholders for the modeled 
    and its transform.  */
 data clean_test;
-set test;
+set test %drop_these;
 SalePrice = .;
 logp = .;
 /* several variables that were 'NA' actually should be given meaningful values */
@@ -201,7 +205,6 @@ if Garagetype  = ' ' then Garagetype   = 'None';
 if GarageFinish= ' ' then GarageFinish = 'None';
 if GarageQual  = ' ' then GarageQual   = 'None';
 if GarageCond  = ' ' then GarageCond   = 'None';
-/* if Utilities   = ' ' then Utilities    = 'None'; */
 if Functional  = ' ' then Functional   = 'Typ';
 /* for these, replace with mean */
 if LotFrontage = ' ' then LotFrontage  = 70;
@@ -221,7 +224,7 @@ if MSZoning    = ' ' then MSZoning = 'RL';
 run;
 
 /* open up hard copy */
-ods rtf file='/folders/myfolders/Project/Prob_2_results_11Aug19.rtf';
+ods rtf file='/folders/myfolders/Project/Prob_2_results_12Aug19.rtf';
 
 /*======================================================================== 
   start of residual analysis
@@ -304,17 +307,16 @@ BsmtFinSF1
 RoofMatl
 SaleType
 LotArea
-%interactions
 ;
 output out=custom_result p=Predict cookd = cook h = leverage student = studre;
 run;
 
+%submit(name=Custom)
+
 title 'means for Custom model';
-proc means data=custom_result;
+proc means data=custom_sub;
 var SalePrice;
 run;
-
-%submit(name=Custom)
 
 title 'Large cooks d';
 proc print data=work.custom_result;
@@ -336,17 +338,15 @@ model logp =
 %categorical_vars 
 /* numeric */
 %numeric_vars 
-%interactions
-/ selection=Forward(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq; 
+/selection=Forward(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;
 output out=forward_result p=Predict; 
 run; 
  
+%submit(name=forward) 
 title 'means for Forward-selected model';
-proc means data=forward_result;
+proc means data=forward_sub;
 var SalePrice;
 run;
-
-%submit(name=forward) 
  
 /*========================================================================   
   start of backward
@@ -362,18 +362,15 @@ model logp =
 %categorical_vars  
 /* numeric */ 
 %numeric_vars  
-%interactions
-/ selection=Backward(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;  
+/selection=Backward(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;
 output out=backward_result p=Predict;  
 run;  
   
+%submit(name=backward)  
 title 'means for backward selected model';
-proc means data=backward_result;
+proc means data=backward_sub;
 var SalePrice;
 run;
-
-
-%submit(name=backward)  
 
 
 /*======================================================================== 
@@ -390,18 +387,16 @@ model logp =
 %categorical_vars
 /* numeric */
 %numeric_vars
-%interactions
 / selection=Stepwise(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;
 output out=stepwise_result p=Predict;
 run;
 
-title 'means for stepwise selected';
-proc means data=stepwise_result;
+%submit(name=Stepwise)
+
+title 'means for stepwise selected model';
+proc means data=Stepwise_sub;
 var SalePrice;
 run;
-
-
-%submit(name=Stepwise)
 
 /* close hard copy */
 ods rtf close;
