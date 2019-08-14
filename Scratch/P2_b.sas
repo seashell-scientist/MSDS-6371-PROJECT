@@ -224,7 +224,7 @@ if MSZoning    = ' ' then MSZoning = 'RL';
 run;
 
 /* open up hard copy */
-ods rtf file='/folders/myfolders/Project/Prob_2_results_12Aug19.rtf';
+ods rtf file='/folders/myfolders/Project/Prob_2_results_13Aug19.rtf';
 
 /*======================================================================== 
   start of residual analysis
@@ -307,6 +307,7 @@ BsmtFinSF1
 RoofMatl
 SaleType
 LotArea
+/solution
 ;
 output out=custom_result p=Predict cookd = cook h = leverage student = studre;
 run;
@@ -324,6 +325,35 @@ var id Neighborhood GrLivArea SalePrice cook leverage studre;
 where cook > 1.0;
 run;
 
+/* do one step of backward model selection so as to get the CVPRESS statistic computed */
+title 'custom by proc glmselect';
+proc glmselect data=union_no_outliers plot=(criterionpanel coefficients);
+Class 
+MSZoning
+Neighborhood
+CentralAir
+RoofMatl
+SaleType
+SaleCondition;
+model logp = 
+MSZoning
+Neighborhood
+SaleCondition
+GarageArea  
+GrLivArea      
+LotArea      
+LotFrontage    
+OverallCond  
+OverallQual  
+YearBuilt
+CentralAir
+BsmtFinSF1
+RoofMatl
+SaleType
+LotArea
+/selection=backward(choose=CV)  steps=1 cvmethod=random(5) cvdetails=cvpress stats=adjrsq; */
+run;
+
 /*========================================================================  
   start of forward
   ======================================================================== 
@@ -338,7 +368,7 @@ model logp =
 %categorical_vars 
 /* numeric */
 %numeric_vars 
-/selection=Forward(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq;
+/selection=Forward(stop=CV) cvmethod=random(5) cvdetails=cvpress stats=adjrsq; 
 output out=forward_result p=Predict; 
 run; 
  
